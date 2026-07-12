@@ -61,9 +61,14 @@ foreach ($prop in @("path", "absolutePath")) {
     if ($vidPath) { break }
 }
 if (-not $vidPath) {
-    Write-Host "ERROR: cannot find the video file this project references."
-    Write-Host "Put the original video next to the .trk and try again."
-    exit 1
+    # data-only mode: Tracker renders tracks, axes, plots and tables fine
+    # without a video; points appear on a blank background
+    Write-Host "Video file not found -> opening WITHOUT video."
+    Write-Host "All tracked data, plots and tables still work; points show on a blank background."
+    Write-Host "To restore the video view, put the original video next to the .trk and drop it on the shortcut again."
+    $Trk | Out-File $pathFile -Encoding Default -NoNewline
+    "2048" | Out-File $xmxFile -Encoding ASCII -NoNewline
+    exit 0
 }
 
 # find ffmpeg: PATH first, then any winget BtbN package
