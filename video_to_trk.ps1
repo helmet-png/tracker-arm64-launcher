@@ -3,7 +3,10 @@
 # Writes the .trk path to %TEMP%\trk_path.txt and the Java heap size (MB)
 # to %TEMP%\trk_xmx.txt. If the full sequence cannot fit in RAM, frames are
 # sampled every Nth frame and delta_t is adjusted so timing stays exact.
-param([Parameter(Mandatory=$true)][string]$Video)
+param(
+    [Parameter(Mandatory=$true)][string]$Video,
+    [int]$AssumeN = 0   # test hook: skip the sampling dialog and use this N
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -42,7 +45,24 @@ $maxFrames = [math]::Floor(($budgetMB - 600) / $frameMB)
 $every = 1
 if ($estFrames -gt $maxFrames) {
     $every = [math]::Ceiling($estFrames / $maxFrames)
-    Write-Host ("NOTE: video is long ({0} frames). Keeping every {1}th frame so it fits in RAM; effective rate {2} fps." -f $estFrames, $every, [math]::Round($fps/$every,3))
+    if ($AssumeN -ge 1) {
+        $every = $AssumeN
+    } else {
+        # let the user see and adjust the sampling before conversion
+        Add-Type -AssemblyName Microsoft.VisualBasic
+        $needAllGB = [math]::Round(($estFrames * $frameMB + 600) / 1024, 1)
+        $msg = ("Video: {0} frames @ {1} fps.`n" +
+                "Suggested: keep every {2}th frame -> {3} fps (fits in RAM).`n" +
+                "Keeping ALL frames (N=1) needs ~{4} GB RAM.`n`n" +
+                "影片共 {0} 幀 @ {1} fps。`n" +
+                "建議每 {2} 幀取 1 → 有效幀率 {3} fps（可塞進記憶體）。`n" +
+                "全保留（N=1）約需 {4} GB 記憶體。`n`n" +
+                "輸入 N（每 N 幀取 1）/ Enter N (keep every Nth frame):") -f `
+                $estFrames, [math]::Round($fps,2), $every, [math]::Round($fps/$every,2), $needAllGB
+        $ans = [Microsoft.VisualBasic.Interaction]::InputBox($msg, "Tracker sampling", "$every")
+        if ($ans -match '^\d+$' -and [int]$ans -ge 1) { $every = [int]$ans }
+    }
+    Write-Host ("Sampling: keeping every {0}th frame; effective rate {1} fps." -f $every, [math]::Round($fps/$every,3))
 }
 
 # --- extract frames ---
@@ -86,6 +106,11 @@ $trk = Join-Path $out ($name + ".trk")
 
 # --- report back to the launcher ---
 $xmx = [math]::Max(2048, [math]::Round($frames.Count * $frameMB + 600))
+$cap = [math]::Round($ramMB * 0.75)
+if ($xmx -gt $cap) {
+    Write-Host ("WARNING: sequence wants {0} MB heap; capping at {1} MB (75% of RAM). Tracker may run out of memory - consider a larger N next time." -f $xmx, $cap)
+    $xmx = $cap
+}
 $trk | Out-File -FilePath (Join-Path $env:TEMP "trk_path.txt") -Encoding Default -NoNewline
 $xmx | Out-File -FilePath (Join-Path $env:TEMP "trk_xmx.txt") -Encoding ASCII -NoNewline
 Write-Host ("OK: {0} frames @ {1} fps, heap {2} MB" -f $frames.Count, [math]::Round($fps/$every,3), $xmx)

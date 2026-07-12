@@ -42,7 +42,7 @@ The scripts auto-detect `C:\Program Files\Microsoft\jdk-*`, `C:\Program Files\Tr
 
 - There's no video engine in this mode: mp4s can't be opened from inside Tracker — always drop the video on the shortcut first.
 - Don't double-click a .trk file directly — the file association still points to the old x64 `Tracker.exe`.
-- The whole image sequence loads into RAM, so the Java heap size is computed per project; long videos are automatically sampled (every Nth frame, `delta_t` adjusted to stay exact) to fit in half of physical RAM. Trim to the segment you need for full temporal resolution.
+- The whole image sequence loads into RAM, so the Java heap size is computed per project. For long videos a dialog shows the suggested sampling (keep every Nth frame, `delta_t` adjusted so timing stays exact) and lets you change N or keep all frames; the effective frame rate appears in Tracker's Clip Settings as usual.
 - Verified on Tracker 6.3.4 + Microsoft OpenJDK 21 + Snapdragon X (Windows 11).
 
 ## License
@@ -93,7 +93,7 @@ winget install BtbN.FFmpeg.GPL.8.1      # ARM64 native ffmpeg (winarm64 build)
 
 - 此模式下 Tracker 沒有影片引擎：mp4 不能直接從 Tracker 內開啟，一律把影片拖到捷徑轉檔。
 - 別直接雙擊 .trk 檔——檔案關聯仍指向舊的 x64 版 `Tracker.exe`。
-- 圖片序列會全部載入 RAM，Java heap 依專案大小自動計算；過長的影片會自動降幀（每 N 幀取 1，`delta_t` 同步調整、時間軸仍精確）以塞進實體 RAM 的一半。要保留完整時間解析度請先剪出需要的片段。
+- 圖片序列會全部載入 RAM，Java heap 依專案大小自動計算。過長的影片會**彈出視窗**顯示建議降幀值（每 N 幀取 1，`delta_t` 同步調整、時間軸仍精確），可自行改 N 或選擇全保留；降完的有效幀率會正常顯示在 Tracker 的 Clip Settings 裡。
 - 在 Tracker 6.3.4 + Microsoft OpenJDK 21 + Snapdragon X (Windows 11) 驗證過。
 
 ### 授權
