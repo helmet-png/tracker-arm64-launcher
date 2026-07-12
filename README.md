@@ -24,7 +24,7 @@ winget install Microsoft.OpenJDK.21     # ARM64 native JDK (auto-selected on ARM
 winget install BtbN.FFmpeg.GPL.8.1      # ARM64 native ffmpeg (winarm64 build)
 ```
 
-1. Download `tracker_launch.bat` and `video_to_trk.ps1` from this repo into the same folder.
+1. Download `tracker_launch.bat`, `video_to_trk.ps1` and `repair_trk.ps1` from this repo into the same folder.
 2. Create a desktop shortcut to `tracker_launch.bat`; you can point its icon at `C:\Program Files\Tracker\tracker.ico`.
 3. (Optional) Run `fix_prefs.ps1` as Administrator to permanently silence the "missing video engine" warnings and set the memory limit to 2GB.
 
@@ -36,13 +36,13 @@ The scripts auto-detect `C:\Program Files\Microsoft\jdk-*`, `C:\Program Files\Tr
 |---|---|
 | Double-click the shortcut | Opens Tracker (native ARM64) |
 | Drop a video on the shortcut | Auto-converts to a JPG sequence → builds a .trk → opens in Tracker with frame rate already set |
-| Drop a .trk on the shortcut | Opens the existing project directly |
+| Drop a .trk on the shortcut | Opens it; old movie-based projects are auto-repaired to image sequences at full resolution (original kept as `.trk.bak`), or fall back to the bundled x64 Tracker when the sequence cannot fit in RAM |
 
 ## Caveats
 
 - There's no video engine in this mode: mp4s can't be opened from inside Tracker — always drop the video on the shortcut first.
 - Don't double-click a .trk file directly — the file association still points to the old x64 `Tracker.exe`.
-- Long videos take time to load (the whole image sequence loads into RAM); trim to the segment you need first.
+- The whole image sequence loads into RAM, so the Java heap size is computed per project; long videos are automatically sampled (every Nth frame, `delta_t` adjusted to stay exact) to fit in half of physical RAM. Trim to the segment you need for full temporal resolution.
 - Verified on Tracker 6.3.4 + Microsoft OpenJDK 21 + Snapdragon X (Windows 11).
 
 ## License
@@ -75,7 +75,7 @@ winget install Microsoft.OpenJDK.21     # ARM64 native JDK (auto-selected on ARM
 winget install BtbN.FFmpeg.GPL.8.1      # ARM64 native ffmpeg (winarm64 build)
 ```
 
-1. 下載本 repo 的 `tracker_launch.bat` 和 `video_to_trk.ps1` 放到同一個資料夾。
+1. 下載本 repo 的 `tracker_launch.bat`、`video_to_trk.ps1` 和 `repair_trk.ps1` 放到同一個資料夾。
 2. 對 `tracker_launch.bat` 建捷徑放桌面，圖示可指到 `C:\Program Files\Tracker\tracker.ico`。
 3. （可選）以系統管理員執行 `fix_prefs.ps1`，永久關掉「缺少影片處理程式」警告並把記憶體設為 2GB。
 
@@ -87,13 +87,13 @@ winget install BtbN.FFmpeg.GPL.8.1      # ARM64 native ffmpeg (winarm64 build)
 |---|---|
 | 雙擊捷徑 | 開啟 Tracker（ARM64 原生） |
 | 把影片拖到捷徑上 | 自動轉 JPG 序列 → 產生 .trk → Tracker 開啟，幀率已設好 |
-| 把 .trk 拖到捷徑上 | 直接開啟舊專案 |
+| 把 .trk 拖到捷徑上 | 直接開啟；舊式（影片來源是 mp4 的）專案會自動修復成原解析度圖片序列（原檔備份為 `.trk.bak`），塞不進 RAM 的則自動改用內建 x64 版 Tracker 開啟 |
 
 ### 注意
 
 - 此模式下 Tracker 沒有影片引擎：mp4 不能直接從 Tracker 內開啟，一律把影片拖到捷徑轉檔。
 - 別直接雙擊 .trk 檔——檔案關聯仍指向舊的 x64 版 `Tracker.exe`。
-- 長影片載入需要時間（圖片序列全部載入 RAM），建議先剪出需要的片段。
+- 圖片序列會全部載入 RAM，Java heap 依專案大小自動計算；過長的影片會自動降幀（每 N 幀取 1，`delta_t` 同步調整、時間軸仍精確）以塞進實體 RAM 的一半。要保留完整時間解析度請先剪出需要的片段。
 - 在 Tracker 6.3.4 + Microsoft OpenJDK 21 + Snapdragon X (Windows 11) 驗證過。
 
 ### 授權

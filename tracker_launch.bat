@@ -3,7 +3,9 @@ rem Unified Tracker launcher (native ARM64 Java, no x64 emulation).
 rem Double-click        -> opens Tracker.
 rem Drop a video on it  -> converts to frames, builds a .trk with the
 rem                        correct frame rate, opens it in Tracker.
-rem Drop a .trk on it   -> opens the project directly.
+rem Drop a .trk on it   -> opens it; old movie-based projects are repaired
+rem                        to image sequences first (or fall back to the
+rem                        bundled x64 Tracker if too big for RAM).
 setlocal
 
 rem --- locate an ARM64/native JDK (Microsoft OpenJDK), newest first ---
@@ -34,21 +36,33 @@ if "%~1"=="" (
   exit /b 0
 )
 
-rem a dropped .trk project opens directly, no conversion
+del "%TEMP%\trk_path.txt" 2>nul
+del "%TEMP%\trk_xmx.txt" 2>nul
+
 if /I "%~x1"==".trk" (
-  start "" %JAVAW% -Xmx2048m -jar "%TJAR%" "%~1"
-  exit /b 0
+  echo Checking project video source...
+  powershell -nop -ExecutionPolicy Bypass -File "%~dp0repair_trk.ps1" -Trk "%~1"
+) else (
+  echo Converting video for Tracker, please wait...
+  powershell -nop -ExecutionPolicy Bypass -File "%~dp0video_to_trk.ps1" -Video "%~1"
 )
 
-echo Converting video for Tracker, please wait...
-del "%TEMP%\trk_path.txt" 2>nul
-powershell -nop -ExecutionPolicy Bypass -File "%~dp0video_to_trk.ps1" -Video "%~1"
 if not exist "%TEMP%\trk_path.txt" (
   echo.
-  echo Conversion FAILED. See messages above.
+  echo FAILED. See messages above.
   pause
   exit /b 1
 )
 set /p TRK=<"%TEMP%\trk_path.txt"
-echo Opening in Tracker: %TRK%
-start "" %JAVAW% -Xmx2048m -jar "%TJAR%" "%TRK%"
+set /p XMX=<"%TEMP%\trk_xmx.txt"
+
+rem project too big for RAM as an image sequence -> use the bundled
+rem x64 Tracker (slow, emulated, but it has a real video engine)
+if "%TRK%"=="X64" (
+  echo Opening with the bundled x64 Tracker...
+  start "" "C:\Program Files\Tracker\Tracker.exe" "%~1"
+  exit /b 0
+)
+
+echo Opening in Tracker: %TRK%  (heap %XMX% MB)
+start "" %JAVAW% -Xmx%XMX%m -jar "%TJAR%" "%TRK%"
